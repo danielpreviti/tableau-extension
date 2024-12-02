@@ -5,17 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Heat Map Extension</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    // Initialize Tableau Extension
+    tableau.extensions.initializeAsync().then(() => {
+      const worksheet = tableau.extensions.dashboardContent.dashboard.worksheets[0];
+      fetchData(worksheet);
+
+      // Add listener for when data updates in Tableau
+      worksheet.addEventListener(tableau.TableauEventType.FilterChanged, () => {
+        fetchData(worksheet);
+      });
+    });
+
+    // Fetch Data from Tableau
+    function fetchData(worksheet) {
+      worksheet.getSummaryDataAsync().then((dataTable) => {
+        const data = dataTable.data.map(row => ({
+          polygon: row[0].value, // Assuming the first column is 'polygon'
+          count: parseFloat(row[1].value) // Assuming the second column is 'count'
+        }));
+        updateHeatMap(data);
+      });
+    }
+
+    // Update Heat Map
+    function updateHeatMap(data) {
+      data.forEach(item => {
+        const polygon = d3.select(`#${item.polygon}`);
+        if (polygon.empty()) return; // Skip if polygon not found
+
+        // Calculate heat map color based on 'count'
+        const color = d3.interpolateReds(item.count / 100); // Normalize to 0-100 range
+        polygon.style('fill', color);
+      });
+    }
+  </script>
 </head>
 <body>
-  <div id="container">
-    <svg width="437" height="306" viewBox="0 0 437 306" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <g id="Group 1">
-        <path id="polygon1" d="M1 8V166H210V8H1Z" stroke="black"/>
-        <path id="polygon2" d="M311 169V1H383V169H311Z" stroke="black"/>
-        <path id="polygon3" d="M130 305V219H436V305H130Z" stroke="black"/>
-      </g>
-    </svg>
-  </div>
-  <script src="extension.js"></script>
+  <h1>Heat Map Extension</h1>
+  <p>This extension dynamically updates polygon colors based on your Tableau data.</p>
+  <!-- SVG Polygons -->
+  <svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+    <path id="polygon1" d="M50 50 H150 V150 H50 Z" stroke="black" fill="white"></path>
+    <path id="polygon2" d="M200 50 H300 V150 H200 Z" stroke="black" fill="white"></path>
+    <path id="polygon3" d="M350 50 H450 V150 H350 Z" stroke="black" fill="white"></path>
+  </svg>
 </body>
 </html>
